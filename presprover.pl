@@ -879,7 +879,7 @@ nf_unquantified(A =< _)       --> expr_variables(A).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Variables that occur in arithmetic expressions in the normal form.
+   Variables that occur anywhere in the normal form.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 nf_variables(NF, Vs) :-
@@ -888,12 +888,12 @@ nf_variables(NF, Vs) :-
                                 % order of variables must match the
                                 % tracks in the automaton
 
-nf_variables(exists(_X,F)) --> nf_variables(F).
-nf_variables(not(F))       --> nf_variables(F).
-nf_variables(A /\ B)       --> nf_variables(A), nf_variables(B).
-nf_variables(A \/ B)       --> nf_variables(A), nf_variables(B).
-nf_variables(A = _)        --> expr_variables(A).
-nf_variables(A =< _)       --> expr_variables(A).
+nf_variables(exists(X,F)) --> [X], nf_variables(F).
+nf_variables(not(F))      --> nf_variables(F).
+nf_variables(A /\ B)      --> nf_variables(A), nf_variables(B).
+nf_variables(A \/ B)      --> nf_variables(A), nf_variables(B).
+nf_variables(A = _)       --> expr_variables(A).
+nf_variables(A =< _)      --> expr_variables(A).
 
 expr_variables([]) --> [].
 expr_variables([Var-_|Es]) --> [Var], expr_variables(Es).
