@@ -410,7 +410,9 @@ ndfa_dfa(NDFA, DFA) :-
         ;   NDFA = aut(_,QFs,Q0,Delta),
             ndfa_alphabet_table(NDFA, Alphabet, Table),
             maplist(symbol_union(Table,[Q0]), Alphabet, Us0),
-            saturate_det_table(Alphabet, Table, Us0, Us),
+            empty_assoc(Lookup0),
+            register_firsts(Us0, Lookup0, Lookup),
+            saturate_det_table(Alphabet, Table, Lookup, Us0, Us),
             maplist(dfa_transform_table, Us, DFADelta),
             delta_states(DFADelta, DFAStates0),
             sort([d([Q0])|DFAStates0], DFAStates),
@@ -424,16 +426,22 @@ ndfa_dfa(NDFA, DFA) :-
         ),
         aut_minimal(DFA0, DFA).
 
+u_first(u(Q,_,_), Q).
 
-dettable_notcovered(Us, Q) :-
+register_firsts(Us, Lookup0, Lookup) :-
+        maplist(u_first, Us, Firsts),
+        foldl(register_state, Firsts, Lookup0, Lookup).
+
+dettable_notcovered(Lookup, Us, Q) :-
         member(u(_,_,Q), Us),
-        \+ memberchk(u(Q,_,_), Us).
+        \+ in_assoc(Lookup, Q).
 
-saturate_det_table(Alphabet, Table, Us0, Us) :-
-        (   dettable_notcovered(Us0, Qs) ->
+saturate_det_table(Alphabet, Table, Lookup0, Us0, Us) :-
+        (   dettable_notcovered(Lookup0, Us0, Qs) ->
             maplist(symbol_union(Table,Qs), Alphabet, Us1),
+            register_firsts(Us1, Lookup0, Lookup),
             append(Us0, Us1, Us2),
-            saturate_det_table(Alphabet, Table, Us2, Us)
+            saturate_det_table(Alphabet, Table, Lookup, Us2, Us)
         ;   Us0 = Us
         ).
 
