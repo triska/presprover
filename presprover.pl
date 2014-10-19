@@ -56,7 +56,7 @@
     forall(V, F) : Equivalent to not(exists(V, not(F))).
         A /\ B   : Conjunction. True iff both A and B are true.
         A \/ B   : Disjunction. True iff either A or B, or both, are true.
-        A => B   : Implication. Equivalent to not(A) \/ B.
+        A ==> B   : Implication. Equivalent to not(A) \/ B.
 
    Use valid/1 and satisfiable/1 to check given formulas.
 
@@ -77,16 +77,16 @@
       ?- valid(forall(x, exists(y, 3*x + y > 2))).
       true.
 
-      ?- valid(2*y + 3*x = 30 /\ x = 0 => y = 15).
+      ?- valid(2*y + 3*x = 30 /\ x = 0 ==> y = 15).
       true.
 
       ?- valid(x = 3 \/ not(x=3)).
       true.
 
-      ?- valid(x = 5 => 2*x = 10).
+      ?- valid(x = 5 ==> 2*x = 10).
       true.
 
-      ?- valid(y > 1 /\ x = 3 /\ x + y < 19 => x + 19 > y).
+      ?- valid(y > 1 /\ x = 3 /\ x + y < 19 ==> x + 19 > y).
       true.
 
    You can use solution/1 to print solutions of satisfiable formulas:
@@ -111,7 +111,7 @@
 :- module(presprover, [
                        op(750, yfx, /\),
                        op(751, yfx, \/),
-                       op(760, xfy, =>),
+                       op(760, xfy, ==>),
                        valid/1,
                        satisfiable/1,
                        solution/1
@@ -755,7 +755,7 @@ normal_form(A0 < B0, NF)       :- normal_form(A0 + 1 =< B0, NF).
 normal_form(A0 > B0, NF)       :- normal_form(B0 < A0, NF).
 normal_form(forall(X,F), NF)   :- normal_form(not(exists(X,not(F))), NF).
 normal_form(not(F), not(NF))   :- normal_form(F, NF).
-normal_form(A => B, NF)        :- normal_form(not(A) \/ B, NF).
+normal_form(A ==> B, NF)       :- normal_form(not(A) \/ B, NF).
 normal_form(exists(X,F), exists(X,NF)) :- normal_form(F, NF).
 
 exprs_linsum_c(Left0, Right0, Lefts, C) :-
@@ -1006,7 +1006,7 @@ is_formula(AF)             :- is_relation(AF).
 is_formula(not(F))         :- is_formula(F).
 is_formula(A /\ B)         :- is_formula(A), is_formula(B).
 is_formula(A \/ B)         :- is_formula(A), is_formula(B).
-is_formula(A => B)         :- is_formula(A), is_formula(B).
+is_formula(A ==> B)        :- is_formula(A), is_formula(B).
 is_formula(forall(Var, F)) :- pvar(Var), is_formula(F).
 is_formula(exists(Var, F)) :- pvar(Var), is_formula(F).
 
@@ -1136,11 +1136,11 @@ halting_path([Rs|Rss], Next, DA) --> [Symbol],
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-test(1, valid(y > 1 /\ x = 3 /\ x + y < 19  =>  x + 19 > y)).    % p. 102
-test(2, valid(y > 1 /\ x = 3 /\ not(x + y < 19) =>  y + y > y)). % p. 102
-test(3, valid(x = 3 /\ y = 1 => 3*x + y = 10)).                  % p. 103
-test(4, valid(2*y + 3*x = 30 /\ not(not(x=0)) => y = 15)).       % p. 78 (addendum)
-test(5, valid(y = 15 /\ x = 0 => y = 15)).
+test(1, valid(y > 1 /\ x = 3 /\ x + y < 19  ==>  x + 19 > y)).    % p. 102
+test(2, valid(y > 1 /\ x = 3 /\ not(x + y < 19) ==>  y + y > y)). % p. 102
+test(3, valid(x = 3 /\ y = 1 ==> 3*x + y = 10)).                  % p. 103
+test(4, valid(2*y + 3*x = 30 /\ not(not(x=0)) ==> y = 15)).       % p. 78 (addendum)
+test(5, valid(y = 15 /\ x = 0 ==> y = 15)).
 test(6, \+ valid(x+y > 0)).
 test(7, valid(forall(x,exists(y,x+y > 5)))).
 test(8, valid(exists(y, x+y > 5))).
@@ -1153,7 +1153,7 @@ test(a2, satisfiable(exists(x, exists(y, x > 0 /\ y > x)))).
 test(a3, satisfiable(exists(x, x > 0 /\ exists(y, y > x)))).
 test(a4, \+ valid(exists(x, x > 3 /\ x < 3 \/ y = 5))).
 test(a5, \+ valid(forall(y, exists(x, x > 3 /\ x < 3 \/ y = 5)))).
-test(a6, \+ valid(x > 3 /\ x > 3 => x > 4)).
+test(a6, \+ valid(x > 3 /\ x > 3 ==> x > 4)).
 
 test(13, N, \+ valid(exists(x, x > N /\ x < N))).
 test(14, N, valid(not(exists(x, x > N /\ x < N)))).
