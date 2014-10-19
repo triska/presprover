@@ -735,7 +735,7 @@ delete_nth(Ls0, N, Ls) :-
                             Term rewriting
 
   Normalize input formula to:
-    F <= const
+    F =< const
     F = const
     A /\ B (and)
     A \/ B (or)
@@ -744,16 +744,16 @@ delete_nth(Ls0, N, Ls) :-
   furthermore, simplify atomic formulas to
       a1*x1 +  a2*x2 + ... + a_n*x_n  (<)=   const
   and represent this using lists as [Var-Coeff] pairs on the left side.
-  A = B could be reduced to A <= B /\ B <= A, but we don't.
+  A = B could be reduced to A =< B /\ B =< A, but we don't.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 normal_form(A0 /\ B0, A /\ B)  :- normal_form(A0, A), normal_form(B0, B).
 normal_form(A0 \/ B0, A \/ B)  :- normal_form(A0, A), normal_form(B0, B).
 normal_form(A0 = B0, Ls = C)   :- exprs_linsum_c(A0, B0, Ls, C).
-normal_form(A0 <= B0, Ls <= C) :- exprs_linsum_c(A0, B0, Ls, C).
-normal_form(A0 >= B0, NF)      :- normal_form(B0 <= A0, NF).
-normal_form(A0 =< B0, NF)      :- normal_form(A0 <= B0, NF).
-normal_form(A0 < B0, NF)       :- normal_form(A0 + 1 <= B0, NF).
+normal_form(A0 =< B0, Ls =< C) :- exprs_linsum_c(A0, B0, Ls, C).
+normal_form(A0 >= B0, NF)      :- normal_form(B0 =< A0, NF).
+normal_form(A0 <= B0, NF)      :- normal_form(A0 =< B0, NF).
+normal_form(A0 < B0, NF)       :- normal_form(A0 + 1 =< B0, NF).
 normal_form(A0 > B0, NF)       :- normal_form(B0 < A0, NF).
 normal_form(forall(X,F), NF)   :- normal_form(not(exists(X,not(F))), NF).
 normal_form(not(F), not(NF))   :- normal_form(F, NF).
@@ -852,7 +852,7 @@ nf_quantified(not(Term))    --> nf_quantified(Term).
 nf_quantified(A /\ B)       --> nf_quantified(A), nf_quantified(B).
 nf_quantified(A \/ B)       --> nf_quantified(A), nf_quantified(B).
 nf_quantified(_ = _)        --> [].
-nf_quantified(_ <= _)       --> [].
+nf_quantified(_ =< _)       --> [].
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Variables that occur *somewhere* in NOT (existentially) quantified
@@ -873,7 +873,7 @@ nf_unquantified(not(Term))    --> nf_unquantified(Term).
 nf_unquantified(A /\ B)       --> nf_unquantified(A), nf_unquantified(B).
 nf_unquantified(A \/ B)       --> nf_unquantified(A), nf_unquantified(B).
 nf_unquantified(A = _)        --> expr_variables(A).
-nf_unquantified(A <= _)       --> expr_variables(A).
+nf_unquantified(A =< _)       --> expr_variables(A).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -891,7 +891,7 @@ nf_variables(not(F))       --> nf_variables(F).
 nf_variables(A /\ B)       --> nf_variables(A), nf_variables(B).
 nf_variables(A \/ B)       --> nf_variables(A), nf_variables(B).
 nf_variables(A = _)        --> expr_variables(A).
-nf_variables(A <= _)       --> expr_variables(A).
+nf_variables(A =< _)       --> expr_variables(A).
 
 expr_variables([]) --> [].
 expr_variables([Var-_|Es]) --> [Var], expr_variables(Es).
@@ -927,7 +927,7 @@ valid_normal_form(not(Term)) :- valid_normal_form(Term).
 valid_normal_form(A /\ B)    :- valid_normal_form(A), valid_normal_form(B).
 valid_normal_form(A \/ B)    :- valid_normal_form(A), valid_normal_form(B).
 valid_normal_form(_ = _).
-valid_normal_form(_ <= _).
+valid_normal_form(_ =< _).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A DCG is used to implicitly pass the variables around as an
@@ -949,7 +949,7 @@ merge_(exists(V,Term0), exists(V,Term)) -->
           merge_variables(Vs, Term0, Term) }.
 merge_(A0/\B0, A/\B)      --> merge_(A0, A), merge_(B0, B).
 merge_(A0\/B0, A\/B)      --> merge_(A0, A), merge_(B0, B).
-merge_(Ls0 <= C, Ls <= C) --> merge_linsum(Ls0, Ls).
+merge_(Ls0 =< C, Ls =< C) --> merge_linsum(Ls0, Ls).
 merge_(Ls0 = C, Ls = C)   --> merge_linsum(Ls0, Ls).
 
 merge_linsum(Ls0, Ls) -->
@@ -973,10 +973,10 @@ delete_(D, Ls0, Ls) :-
 % "x = 1":
 test_aut(1, aut([q(0), q(1)], [q(0)], q(1), [delta(q(0), [0], q(0)), delta(q(1), [1], q(0))])).
 
-% "x <= 4":
+% "x =< 4":
 test_aut(2, aut([q(-1), q(0), q(1), q(2), q(4)], [q(0), q(1), q(2), q(4)], q(4), [delta(q(-1), [0], q(-1)), delta(q(-1), [1], q(-1)), delta(q(0), [0], q(0)), delta(q(0), [1], q(-1)), delta(q(1), [0], q(0)), delta(q(1), [1], q(0)), delta(q(2), [0], q(1)), delta(q(2), [1], q(0)), delta(q(4), [0], q(2)), delta(q(4), [1], q(1))])).
 
-% "x >= 5"  (-x <= -5)
+% "x >= 5"  (-x =< -5)
 test_aut(3, aut([q(-5), q(-3), q(-2), q(-1), q(0)], [q(0)], q(-5), [delta(q(-5), [0], q(-3)), delta(q(-5), [1], q(-2)), delta(q(-3), [0], q(-2)), delta(q(-3), [1], q(-1)), delta(q(-2), [0], q(-1)), delta(q(-2), [1], q(-1)), delta(q(-1), [0], q(-1)), delta(q(-1), [1], q(0)), delta(q(0), [0], q(0)), delta(q(0), [1], q(0))])).
 
 
@@ -1035,7 +1035,7 @@ formula_automaton(F, Aut) :-
 nf_automaton(Lefts = Y, A) :-
         pairs_values(Lefts, Cs),
         eq_automaton(Cs, Y, A).
-nf_automaton(Lefts <= Y, A) :-
+nf_automaton(Lefts =< Y, A) :-
         pairs_values(Lefts, Cs),
         ineq_automaton(Cs, Y, A).
 nf_automaton(not(F), A) :-
