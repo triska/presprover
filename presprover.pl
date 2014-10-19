@@ -109,7 +109,6 @@
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- module(presprover, [
-                       op(745, xfx, <=),
                        op(750, yfx, /\),
                        op(751, yfx, \/),
                        op(760, xfy, =>),
@@ -752,7 +751,6 @@ normal_form(A0 \/ B0, A \/ B)  :- normal_form(A0, A), normal_form(B0, B).
 normal_form(A0 = B0, Ls = C)   :- exprs_linsum_c(A0, B0, Ls, C).
 normal_form(A0 =< B0, Ls =< C) :- exprs_linsum_c(A0, B0, Ls, C).
 normal_form(A0 >= B0, NF)      :- normal_form(B0 =< A0, NF).
-normal_form(A0 <= B0, NF)      :- normal_form(A0 =< B0, NF).
 normal_form(A0 < B0, NF)       :- normal_form(A0 + 1 =< B0, NF).
 normal_form(A0 > B0, NF)       :- normal_form(B0 < A0, NF).
 normal_form(forall(X,F), NF)   :- normal_form(not(exists(X,not(F))), NF).
@@ -1015,7 +1013,7 @@ is_formula(exists(Var, F)) :- pvar(Var), is_formula(F).
 
 is_relation(AF) :-
         AF =.. [Op,A,B],
-        memberchk(Op, [<,>,=,<=,>=,=<]),
+        memberchk(Op, [<,>,=,>=,=<]),
         is_expr(A),
         is_expr(B).
 
