@@ -904,7 +904,7 @@ expr_variables([Var-_|Es]) --> [Var], expr_variables(Es).
 
 formula_normalized(F, NF) :-
         normal_form(F, NF0),
-        valid_normal_form(NF0),
+        well_formed(NF0),
         nf_variables(NF0, Vs0),
         nf_quantified_variables(NF0, QVs),
         nf_unquantified_variables(NF0, UVs),
@@ -915,17 +915,17 @@ formula_normalized(F, NF) :-
         list_delete(QVs, Vs0, Vs),
         merge_variables(Vs, NF0, NF).
 
-valid_normal_form(exists(X, F)) :-
+well_formed(exists(X, F)) :-
         nf_quantified_variables(F, Vs),
         (   member(X0, Vs), X == X0 ->
             throw('variable twice-quantified'-X)
-        ;   valid_normal_form(F)
+        ;   well_formed(F)
         ).
-valid_normal_form(not(Term)) :- valid_normal_form(Term).
-valid_normal_form(A /\ B)    :- valid_normal_form(A), valid_normal_form(B).
-valid_normal_form(A \/ B)    :- valid_normal_form(A), valid_normal_form(B).
-valid_normal_form(_ = _).
-valid_normal_form(_ =< _).
+well_formed(not(Term)) :- well_formed(Term).
+well_formed(A /\ B)    :- well_formed(A), well_formed(B).
+well_formed(A \/ B)    :- well_formed(A), well_formed(B).
+well_formed(_ = _).
+well_formed(_ =< _).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A DCG is used to implicitly pass the variables around as an
