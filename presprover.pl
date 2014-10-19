@@ -279,7 +279,9 @@ aut_intersection(NA1, NA2, I) :-
         ndfa_dfa(NA1, aut(Qs1,QFs1,S1,Delta1)),
         ndfa_dfa(NA2, aut(Qs2,QFs2,S2,Delta2)),
         phrase(lists_pairs(Qs1, Qs2), Qs),
-        intersec_delta(Qs, Delta1, Delta2, Delta),
+        delta_to_assoc(Delta1, AD1),
+        delta_to_assoc(Delta2, AD2),
+        intersec_delta(Qs, AD1, AD2, Delta),
         include(intersec_ishalting(QFs1,QFs2), Qs, QFs),
         I0 = aut(Qs,QFs,S1-S2,Delta),
         aut_minimal(I0, I).
@@ -298,13 +300,15 @@ intersec_ishalting(QFs1, QFs2, A-B) :-
 :- initialization(intersec_ishalting([q(0),q(1)],[q(0)], q(1)-q(0))).
 
 intersec_delta([], _, _, []).
-intersec_delta([Q|Qs], Delta1, Delta2, Ds) :-
+intersec_delta([Q|Qs], AD1, AD2, Ds) :-
         Q = Q1-Q2,
         findall(delta(Q,S,E1-E2),
-                (   member(delta(Q1,S,E1),Delta1),
-                    member(delta(Q2,S,E2),Delta2)),
+                (   state_nexts(Q1, AD1, Nexts1),
+                    state_nexts(Q2, AD2, Nexts2),
+                    member(S-E1, Nexts1),
+                    member(S-E2, Nexts2)),
                 Ds, RestDeltas),
-        intersec_delta(Qs, Delta1, Delta2, RestDeltas).
+        intersec_delta(Qs, AD1, AD2, RestDeltas).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
