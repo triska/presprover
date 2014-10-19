@@ -302,10 +302,10 @@ intersec_ishalting(QFs1, QFs2, A-B) :-
 intersec_delta([], _, _, []).
 intersec_delta([Q|Qs], AD1, AD2, Ds) :-
         Q = Q1-Q2,
+        state_nexts(Q1, AD1, Nexts1),
+        state_nexts(Q2, AD2, Nexts2),
         findall(delta(Q,S,E1-E2),
-                (   state_nexts(Q1, AD1, Nexts1),
-                    state_nexts(Q2, AD2, Nexts2),
-                    member(S-E1, Nexts1),
+                (   member(S-E1, Nexts1),
                     member(S-E2, Nexts2)),
                 Ds, RestDeltas),
         intersec_delta(Qs, AD1, AD2, RestDeltas).
