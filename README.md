@@ -14,7 +14,7 @@ true.
 true.
 
 
-?- valid(x < y => 10*x < 20*y).
+?- valid(x < y ==> 10*x < 20*y).
 true.
 
 
