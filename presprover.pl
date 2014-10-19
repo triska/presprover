@@ -56,7 +56,7 @@
     forall(V, F) : Equivalent to not(exists(V, not(F))).
         A /\ B   : Conjunction. True iff both A and B are true.
         A \/ B   : Disjunction. True iff either A or B, or both, are true.
-        A ==> B   : Implication. Equivalent to not(A) \/ B.
+        A ==> B  : Implication. Equivalent to not(A) \/ B.
 
    Use valid/1 and satisfiable/1 to check given formulas.
 
