@@ -873,11 +873,18 @@ nf_quantified(_ =< _)       --> [].
    form. We cannot just subtract the quantified variables from the
    list of all variables, because a variable may be erroneously used
    as both. We want to detect this case and report it as an error.
+
+   We establish the definitive order of variables occurring in the
+   formula, and thus of the tracks in the automaton, by using
+   list_to_set/2 on the list of all variables. This is more reliable
+   than sort/2, since the relative (term-)order of logical variables
+   may change (for example, due to garbage collection or stack
+   shifting) during program execution in future SWI versions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 nf_unquantified_variables(NF, Vs) :-
         phrase(nf_unquantified(NF), Vs0),
-        sort(Vs0, Vs).          % remove duplicates
+        list_to_set(Vs0, Vs).
 
 nf_unquantified(exists(X, F)) -->
         { nf_unquantified_variables(F, Vs0),
@@ -886,8 +893,8 @@ nf_unquantified(exists(X, F)) -->
 nf_unquantified(not(Term))    --> nf_unquantified(Term).
 nf_unquantified(A /\ B)       --> nf_unquantified(A), nf_unquantified(B).
 nf_unquantified(A \/ B)       --> nf_unquantified(A), nf_unquantified(B).
-nf_unquantified(A = _)        --> expr_variables(A).
-nf_unquantified(A =< _)       --> expr_variables(A).
+nf_unquantified(Ls = _)       --> firsts(Ls).
+nf_unquantified(Ls =< _)      --> firsts(Ls).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -895,21 +902,17 @@ nf_unquantified(A =< _)       --> expr_variables(A).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 nf_variables(NF, Vs) :-
-        phrase(nf_variables(NF), Vs0),
-        sort(Vs0, Vs).
-                                % order of variables must match the
-                                % tracks in the automaton
+        phrase(nf_vars(NF), Vs0),
+        sort(Vs0, Vs).          % remove duplicates
 
-nf_variables(exists(X,F)) --> [X], nf_variables(F).
-nf_variables(not(F))      --> nf_variables(F).
-nf_variables(A /\ B)      --> nf_variables(A), nf_variables(B).
-nf_variables(A \/ B)      --> nf_variables(A), nf_variables(B).
-nf_variables(A = _)       --> expr_variables(A).
-nf_variables(A =< _)      --> expr_variables(A).
+nf_vars(exists(X,F)) --> [X], nf_vars(F).
+nf_vars(not(F))      --> nf_vars(F).
+nf_vars(A /\ B)      --> nf_vars(A), nf_vars(B).
+nf_vars(A \/ B)      --> nf_vars(A), nf_vars(B).
+nf_vars(A = _)       --> firsts(A).
+nf_vars(A =< _)      --> firsts(A).
 
-expr_variables([]) --> [].
-expr_variables([Var-_|Es]) --> [Var], expr_variables(Es).
-
+firsts(Pairs) --> { pairs_keys(Pairs, Keys) }, list(Keys).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Main entry point for normalization.  Takes a formula, makes sure
@@ -959,8 +962,7 @@ state(S), [S] --> [S].
 merge_(not(Term0), not(Term)) --> merge_(Term0, Term).
 merge_(exists(V,Term0), exists(V,Term)) -->
         state(Vs0),
-        { sort([V|Vs0], Vs),
-          merge_variables(Vs, Term0, Term) }.
+        { merge_variables([V|Vs0], Term0, Term) }.
 merge_(A0/\B0, A/\B)      --> merge_(A0, A), merge_(B0, B).
 merge_(A0\/B0, A\/B)      --> merge_(A0, A), merge_(B0, B).
 merge_(Ls0 =< C, Ls =< C) --> merge_linsum(Ls0, Ls).
@@ -1034,10 +1036,10 @@ is_relation(AF) :-
         is_expr(A),
         is_expr(B).
 
-is_expr(Var)  :- pvar(Var), !.
-is_expr(Num)  :- integer(Num).
-is_expr(-Var) :- pvar(Var).
-is_expr(Expr) :-
+is_expr(Var)   :- pvar(Var), !.
+is_expr(Num)   :- integer(Num).
+is_expr(-Expr) :- is_expr(Expr).
+is_expr(Expr)  :-
         Expr =.. [Op,A,B],
         memberchk(Op, [+,-,*]),
         is_expr(A),
@@ -1065,14 +1067,12 @@ nf_automaton(X \/ Y, A) :-
         nf_automaton(Y, A2),
         aut_union(A1, A2, A).
 nf_automaton(exists(Var, F), A) :-
-        nf_automaton(F, A1),
-        nf_variables(F, Vs),
-        nf_quantified_variables(F, QVs),
-        list_delete(QVs, Vs, Vs1),
-        nth0(N, Vs1, Var0),
+        nf_automaton(F, A0),
+        ndfa_dfa(A0, A1),
+        nf_unquantified_variables(F, Vs),
+        nth0(N, Vs, Var0),
         Var0 == Var,
-        ndfa_dfa(A1, A2),
-        aut_delete_track(A2, N, A).
+        aut_delete_track(A1, N, A).
 
 syntax_ok(Formula) :-
         (   is_formula(Formula) -> true
