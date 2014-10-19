@@ -881,7 +881,7 @@ nf_unquantified_variables(NF, Vs) :-
 
 nf_unquantified(exists(X, F)) -->
         { nf_unquantified_variables(F, Vs0),
-          delete(Vs0, X, Vs) },
+          list_delete([X], Vs0, Vs) },
         list(Vs).
 nf_unquantified(not(Term))    --> nf_unquantified(Term).
 nf_unquantified(A /\ B)       --> nf_unquantified(A), nf_unquantified(B).
@@ -978,8 +978,9 @@ v_with_coeff(Ls0, V, V-Coeff) :-
 list_delete(Ds, Ls0, Ls) :- foldl(delete_, Ds, Ls0, Ls).
 
 delete_(D, Ls0, Ls) :-
-        select(D0, Ls0, Ls),
-        D0 == D.
+        (   select(D0, Ls0, Ls), D0 == D -> true
+        ;   Ls0 = Ls
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
