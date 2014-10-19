@@ -163,12 +163,16 @@ states_nexts_([Q|Qs], DA) -->
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 delta_to_assoc(Delta, DA) :-
+        maplist(delta_pair, Delta, Ps0),
+        keysort(Ps0, Ps),
+        group_pairs_by_key(Ps, Groups),
         empty_assoc(DA0),
-        foldl(register_delta, Delta, DA0, DA).
+        foldl(register_delta, Groups, DA0, DA).
 
-register_delta(delta(Current,String,Next), DA0, DA) :-
-        state_nexts(Current, DA0, Nexts),
-        put_assoc(Current, DA0, [String-Next|Nexts], DA).
+delta_pair(delta(Q0,S,Q), Q0-(S-Q)).
+
+register_delta(State-Pairs, DA0, DA) :-
+        put_assoc(State, DA0, Pairs, DA).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                                Equality
