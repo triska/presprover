@@ -882,19 +882,19 @@ nf_quantified(_ =< _)       --> [].
    shifting) during program execution in future SWI versions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-nf_unquantified_variables(NF, Vs) :-
-        phrase(nf_unquantified(NF), Vs0),
+nf_free_variables(NF, Vs) :-
+        phrase(nf_free(NF), Vs0),
         list_to_set(Vs0, Vs).
 
-nf_unquantified(exists(X, F)) -->
-        { nf_unquantified_variables(F, Vs0),
+nf_free(exists(X, F)) -->
+        { nf_free_variables(F, Vs0),
           list_delete([X], Vs0, Vs) },
         list(Vs).
-nf_unquantified(not(Term))    --> nf_unquantified(Term).
-nf_unquantified(A /\ B)       --> nf_unquantified(A), nf_unquantified(B).
-nf_unquantified(A \/ B)       --> nf_unquantified(A), nf_unquantified(B).
-nf_unquantified(Ls = _)       --> firsts(Ls).
-nf_unquantified(Ls =< _)      --> firsts(Ls).
+nf_free(not(Term))    --> nf_free(Term).
+nf_free(A /\ B)       --> nf_free(A), nf_free(B).
+nf_free(A \/ B)       --> nf_free(A), nf_free(B).
+nf_free(Ls = _)       --> firsts(Ls).
+nf_free(Ls =< _)      --> firsts(Ls).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -926,8 +926,8 @@ formula_normalized(F, NF) :-
         well_formed(NF0),
         nf_variables(NF0, Vs0),
         nf_quantified_variables(NF0, QVs),
-        nf_unquantified_variables(NF0, UVs),
-        (   member(V, UVs), member(V1, QVs), V1 == V ->
+        nf_free_variables(NF0, FVs),
+        (   member(V, FVs), member(V1, QVs), V1 == V ->
             throw('variable occurs quantified and free'-V)
         ;   true
         ),
@@ -1069,7 +1069,7 @@ nf_automaton(X \/ Y, A) :-
 nf_automaton(exists(Var, F), A) :-
         nf_automaton(F, A0),
         ndfa_dfa(A0, A1),
-        nf_unquantified_variables(F, Vs),
+        nf_free_variables(F, Vs),
         nth0(N, Vs, Var0),
         Var0 == Var,
         aut_delete_track(A1, N, A).
