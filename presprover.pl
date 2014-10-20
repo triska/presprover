@@ -228,8 +228,6 @@ append_without(As, Bs0, Without, Cs) :-
 
 in_assoc(Assoc, X) :- get_assoc(X, Assoc, _).
 
-:- initialization((list_to_assoc([7-true], A), append_without([1,2,3], [7,8], A, [1,2,3,8]))).
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                               Inequality
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -296,8 +294,6 @@ list_pairs_([B|Bs], A) --> [A-B], list_pairs_(Bs, A).
 intersec_ishalting(QFs1, QFs2, A-B) :-
         memberchk(A, QFs1),
         memberchk(B, QFs2).
-
-:- initialization(intersec_ishalting([q(0),q(1)],[q(0)], q(1)-q(0))).
 
 intersec_delta([], _, _, []).
 intersec_delta([Q|Qs], AD1, AD2, Ds) :-
@@ -390,7 +386,6 @@ test_table(1, [t(q0, 0, [q0, q1, q2]), t(q0, 1, [q1, q2]), t(q0, 2, [q2]), t(q1,
 list([]) --> [].
 list([E|Es]) --> [E], list(Es).
 
-:- initialization((test_table(1, T), symbol_union(T,[q1,q2],1,u([q1,q2],1,[q1,q2])))).
 
 % final state in DFA: if one of its "sub"-states is final in NDFA
 is_dfafinal(Fs, d(Qs)) :-
@@ -504,11 +499,6 @@ delta_states(Delta, Qs) :-
         append_sort(Qs1, Qs2, Qs).
 
 
-:- initialization(delta_alphabet([delta(a,1,b),delta(c,2,d),delta(f,2,g),delta(2,epsilon,5)],[1,2])).
-
-:- initialization(delta_states([delta(a,1,b),delta(c,2,d),delta(f,2,g),delta(2,epsilon,5)],[2,5,a,b,c,d,f,g])).
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                        Complement of automaton
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -545,8 +535,6 @@ complete_state([A|As], Q, Trap, Delta) -->
         ;   [delta(Q,A,Trap)]
         ),
         complete_state(As, Q, Trap, Delta).
-
-:- initialization((phrase(complete_state([1,2],a,trap,[delta(a,1,b)]), Cs), Cs = [delta(a, 2, trap)])).
 
 trapdelta(Trap, A, delta(Trap,A,Trap)).
 
@@ -721,8 +709,6 @@ delta_synonym(Syn, delta(P0,S,Q0), delta(P,S,Q)) :-
         state_synonym(Syn, P0, P),
         state_synonym(Syn, Q0, Q).
 
-
-:- initialization((test_ndfa(1, NDFA), ndfa_dfa(NDFA, aut([q(0),q(1),q(2),q(3),q(4)],[q(1),q(2),q(3),q(4)],q(1),[delta(q(1),0,q(2)),delta(q(1),1,q(3)),delta(q(1),2,q(4)),delta(q(2),0,q(2)),delta(q(2),1,q(3)),delta(q(2),2,q(4)),delta(q(3),0,q(0)),delta(q(3),1,q(3)),delta(q(3),2,q(4)),delta(q(4),0,q(0)),delta(q(4),1,q(0)),delta(q(4),2,q(4)),delta(q(0),0,q(0)),delta(q(0),1,q(0)),delta(q(0),2,q(0))])))).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                             Term rewriting
@@ -963,9 +949,6 @@ test_aut(2, aut([q(-1), q(0), q(1), q(2), q(4)], [q(0), q(1), q(2), q(4)], q(4),
 test_aut(3, aut([q(-5), q(-3), q(-2), q(-1), q(0)], [q(0)], q(-5), [delta(q(-5), [0], q(-3)), delta(q(-5), [1], q(-2)), delta(q(-3), [0], q(-2)), delta(q(-3), [1], q(-1)), delta(q(-2), [0], q(-1)), delta(q(-2), [1], q(-1)), delta(q(-1), [0], q(-1)), delta(q(-1), [1], q(0)), delta(q(0), [0], q(0)), delta(q(0), [1], q(0))])).
 
 
-:- initialization((test_aut(1, A1), test_aut(2, A2), aut_intersection(A1,A2,Int), \+ empty_automaton(Int))).
-:- initialization((test_aut(1, A1), test_aut(3, A3), aut_intersection(A1,A3,Int), empty_automaton(Int))).
-
 eq_satisfiable(Cs, Sum) :-
         eq_automaton(Cs, Sum, A),
         \+ empty_automaton(A).
@@ -977,7 +960,6 @@ test_eq(3, [2, 5],    20).
 
 test_ineq(1, [2,-1], -1).
 
-:- initialization((\+ (member(T, [1,2,3]), test_eq(T, Cs, Sum), \+ eq_satisfiable(Cs, Sum)))).
 
 ineq_satisfiable(Cs, Sum) :-
         ineq_automaton(Cs, Sum, Aut),
@@ -1122,6 +1104,28 @@ halting_path([Rs|Rss], Next, DA) --> [Symbol],
 raises_exception(Goal) :-
         catch(Goal, _, Exc = true),
         Exc == true.
+
+test(t0, (list_to_assoc([7-true], A),
+          append_without([1,2,3], [7,8], A, [1,2,3,8]),
+          intersec_ishalting([q(0),q(1)],[q(0)], q(1)-q(0)),
+          test_table(1, T),
+          symbol_union(T,[q1,q2],1,u([q1,q2],1,[q1,q2])))).
+
+test(t1, (delta_alphabet([delta(a,1,b),delta(c,2,d),delta(f,2,g),delta(2,epsilon,5)],[1,2]),
+          delta_states([delta(a,1,b),delta(c,2,d),delta(f,2,g),delta(2,epsilon,5)],[2,5,a,b,c,d,f,g]),
+          phrase(complete_state([1,2],a,trap,[delta(a,1,b)]), Cs),
+          Cs = [delta(a, 2, trap)])).
+test(t2, (test_ndfa(1, NDFA),
+          ndfa_dfa(NDFA, aut([q(0),q(1),q(2),q(3),q(4)],[q(1),q(2),q(3),q(4)],q(1),[delta(q(1),0,q(2)),delta(q(1),1,q(3)),delta(q(1),2,q(4)),delta(q(2),0,q(2)),delta(q(2),1,q(3)),delta(q(2),2,q(4)),delta(q(3),0,q(0)),delta(q(3),1,q(3)),delta(q(3),2,q(4)),delta(q(4),0,q(0)),delta(q(4),1,q(0)),delta(q(4),2,q(4)),delta(q(0),0,q(0)),delta(q(0),1,q(0)),delta(q(0),2,q(0))])))).
+
+test(t3, (test_aut(1, A1), test_aut(2, A2),
+          aut_intersection(A1,A2,Int), \+ empty_automaton(Int))).
+
+test(t4, (test_aut(1, A1), test_aut(3, A3),
+          aut_intersection(A1,A3,Int), empty_automaton(Int))).
+
+test(t5, forall(member(T, [1,2,3]),
+                (   test_eq(T, Cs, Sum), eq_satisfiable(Cs, Sum)))).
 
 test(1, valid(y > 1 /\ x = 3 /\ x + y < 19  ==>  x + 19 > y)).    % p. 102
 test(2, valid(y > 1 /\ x = 3 /\ not(x + y < 19) ==>  y + y > y)). % p. 102
