@@ -1040,10 +1040,7 @@ nf_automaton(exists(_, F), A) :-
 aut_without_first_track(aut(Qs,QFs,Q0,Delta0), aut(Qs,QFs,Q0,Delta)) :-
         maplist(delta_without_first, Delta0, Delta).
 
-delta_without_first(delta(Q0,Seq0,Q1), delta(Q0,Seq,Q1)) :-
-        list_rest(Seq0, Seq).
-
-list_rest([_|Rest], Rest).
+delta_without_first(delta(Q0,[_|Rest],Q1), delta(Q0,Rest,Q1)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Satisfiability and validity check.
