@@ -728,16 +728,20 @@ delta_synonym(Syn, delta(P0,S,Q0), delta(P,S,Q)) :-
                             Term rewriting
 
   Normalize input formula to:
-    F =< const
-    F = const
-    A /\ B (and)
-    A \/ B (or)
+
+    Ls =< const
+    Ls = const
+    A /\ B
+    A \/ B
     not(F)
     exists(X, F)
-  furthermore, simplify atomic formulas to
-      a1*x1 +  a2*x2 + ... + a_n*x_n  (<)=   const
-  and represent this using lists as [Var-Coeff] pairs on the left side.
-  A = B could be reduced to A =< B /\ B =< A, but we don't.
+
+  where Ls is a list of [Var-Coeff] pairs, representing the sum
+
+      C1*V1 + C2*V2 + ... + C_n*V_n.
+
+  Note that the variables act as keys in these pairs, so that the
+  coefficients of each variable can be easily grouped and summed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 normal_form(A0 /\ B0, A /\ B)  :- normal_form(A0, A), normal_form(B0, B).
@@ -768,9 +772,9 @@ sumup(Ls0, Ls) :-
         maplist(sumup_second, Groups0, Ls2),
         exclude(second_is(0), Ls2, Ls).
 
-% like group_pairs_by_key/2, working around a (current) limitation in
-% library(pairs) that prevents variables as keys. Can be removed as
-% soon as group_pairs_by_key/2 becomes sufficiently general in SWI.
+% Like group_pairs_by_key/2, working around a (previous) limitation in
+% library(pairs) that prevents variables as keys. No longer necessary
+% as of SWI 7.1.25, and should be removed in a few months.
 
 var_group_pairs_by_key([], []).
 var_group_pairs_by_key([M-N|T0], [M-[N|TN]|T]) :-
