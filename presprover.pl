@@ -724,28 +724,6 @@ delta_synonym(Syn, delta(P0,S,Q0), delta(P,S,Q)) :-
 
 :- initialization((test_ndfa(1, NDFA), ndfa_dfa(NDFA, aut([q(0),q(1),q(2),q(3),q(4)],[q(1),q(2),q(3),q(4)],q(1),[delta(q(1),0,q(2)),delta(q(1),1,q(3)),delta(q(1),2,q(4)),delta(q(2),0,q(2)),delta(q(2),1,q(3)),delta(q(2),2,q(4)),delta(q(3),0,q(0)),delta(q(3),1,q(3)),delta(q(3),2,q(4)),delta(q(4),0,q(0)),delta(q(4),1,q(0)),delta(q(4),2,q(4)),delta(q(0),0,q(0)),delta(q(0),1,q(0)),delta(q(0),2,q(0))])))).
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                     Delete a track of an automaton
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-aut_delete_track(aut(Qs,QFs,Q0,Delta0), Track, aut(Qs,QFs,Q0,Delta)) :-
-        maplist(delta_remove_track(Track), Delta0, Delta).
-
-delta_remove_track(Track, delta(Q0,Seq0,Q1), delta(Q0,Seq,Q1)) :-
-        (   Track == 0, Seq0 = [_] ->
-            Seq = epsilon
-        ;   delete_nth(Seq0, Track, Seq)
-        ).
-
-delete_nth(Ls0, N, Ls) :-
-        length(Prefix, N),
-        append(Prefix, [_|Rest], Ls0),
-        append(Prefix, Rest, Ls).
-
-:- initialization(delete_nth([a,b,c,d], 2, [a,b,d])).
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                             Term rewriting
 
@@ -896,43 +874,26 @@ nf_free(A \/ B)       --> nf_free(A), nf_free(B).
 nf_free(Ls = _)       --> firsts(Ls).
 nf_free(Ls =< _)      --> firsts(Ls).
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Variables that occur anywhere in the normal form.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-nf_variables(NF, Vs) :-
-        phrase(nf_vars(NF), Vs0),
-        sort(Vs0, Vs).          % remove duplicates
-
-nf_vars(exists(X,F)) --> [X], nf_vars(F).
-nf_vars(not(F))      --> nf_vars(F).
-nf_vars(A /\ B)      --> nf_vars(A), nf_vars(B).
-nf_vars(A \/ B)      --> nf_vars(A), nf_vars(B).
-nf_vars(A = _)       --> firsts(A).
-nf_vars(A =< _)      --> firsts(A).
-
 firsts(Pairs) --> { pairs_keys(Pairs, Keys) }, list(Keys).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Main entry point for normalization.  Takes a formula, makes sure
-   each variable occurs in each (in)equality, (if necessary, enforce
-   with coefficient 0), same order everywhere.
+   Main entry point for normalization. Given a formula, rewrite it
+   into normal form, then make sure that each free variable occurs in
+   each (in)equality (if necessary, enforce with coefficient 0), in
+   the same order everywhere.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
 formula_normalized(F, NF) :-
         normal_form(F, NF0),
         well_formed(NF0),
-        nf_variables(NF0, Vs0),
         nf_quantified_variables(NF0, QVs),
         nf_free_variables(NF0, FVs),
         (   member(V, FVs), member(V1, QVs), V1 == V ->
             throw('variable occurs quantified and free'-V)
         ;   true
         ),
-        list_delete(QVs, Vs0, Vs),
-        merge_variables(Vs, NF0, NF).
+        merge_variables(FVs, NF0, NF).
 
 well_formed(exists(X, F)) :-
         nf_quantified_variables(F, Vs),
@@ -948,10 +909,11 @@ well_formed(_ =< _).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A DCG is used to implicitly pass the variables around as an
-   argument. Existentially quantified variables are added (with
-   coefficient 0, if necessary) to all expressions within their scope.
-   The tracks corresponding to existentially quantified variables are
-   later removed from the automaton.
+   argument. Each existentially quantified variable is added (with
+   coefficient 0, if necessary) to all expressions within its scope,
+   always in the *first* position of each linear form. The tracks
+   corresponding to existentially quantified variables are later
+   removed from the automaton.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 merge_variables(Vs, NF0, NF) :-
@@ -1066,18 +1028,22 @@ nf_automaton(X \/ Y, A) :-
         nf_automaton(X, A1),
         nf_automaton(Y, A2),
         aut_union(A1, A2, A).
-nf_automaton(exists(Var, F), A) :-
+nf_automaton(exists(_, F), A) :-
         nf_automaton(F, A0),
         ndfa_dfa(A0, A1),
-        nf_free_variables(F, Vs),
-        nth0(N, Vs, Var0),
-        Var0 == Var,
-        aut_delete_track(A1, N, A).
+        % we use the property that an existentially quantified
+        % variable is always merged into the first position, and thus
+        % corresponds to the first track of the automaton
+        aut_without_first_track(A1, A).
 
-syntax_ok(Formula) :-
-        (   is_formula(Formula) -> true
-        ;   throw('invalid formula'-Formula)
-        ).
+
+aut_without_first_track(aut(Qs,QFs,Q0,Delta0), aut(Qs,QFs,Q0,Delta)) :-
+        maplist(delta_without_first, Delta0, Delta).
+
+delta_without_first(delta(Q0,Seq0,Q1), delta(Q0,Seq,Q1)) :-
+        list_rest(Seq0, Seq).
+
+list_rest([_|Rest], Rest).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Satisfiability and validity check.
@@ -1087,11 +1053,13 @@ valid(Formula) :- \+ satisfiable(not(Formula)).
 
 satisfiable(Formula) :-
         syntax_ok(Formula),
-        satisfiable_(Formula).
-
-satisfiable_(Formula) :-
         formula_automaton(Formula, Aut),
         \+ empty_automaton(Aut).
+
+syntax_ok(Formula) :-
+        (   is_formula(Formula) -> true
+        ;   throw('invalid formula'-Formula)
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Print a solution (if there is one) for a given formula and
@@ -1102,9 +1070,7 @@ solution(Formula) :-
         syntax_ok(Formula),
         formula_normalized(Formula, NF),
         nf_automaton(NF, Aut),
-        nf_variables(NF, Vars0),
-        nf_quantified_variables(NF, QVs),
-        list_delete(QVs, Vars0, Vars),
+        nf_free_variables(NF, Vars),
         ndfa_dfa(Aut, Aut1),
         \+ empty_automaton(Aut1),
         length(Path0, _),
