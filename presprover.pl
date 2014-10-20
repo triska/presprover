@@ -1147,6 +1147,7 @@ test(aA, valid((x=2\/(x=2==>x=2))/\ (x=2\/not(x=2)))).
 test(aB, valid(exists(x,exists(y,y=2)))).
 test(aC, raises_exception(valid(exists(x, exists(x, x < 0))))).
 test(aD, satisfiable(not(X=Y/\X=Y/\ (X=2==>Y=2)))). % for group_pairs_by_key/2 with variable keys
+test(aE, valid((x=2==> x = 2) /\ exists(y, y=2))).
 
 test(13, N, \+ valid(exists(x, x > N /\ x < N))).
 test(14, N, valid(not(exists(x, x > N /\ x < N)))).
