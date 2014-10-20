@@ -1152,6 +1152,9 @@ halting_path([Rs|Rss], Next, DA) --> [Symbol],
    Test cases.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+raises_exception(Goal) :-
+        catch(Goal, _, Exc = true),
+        Exc == true.
 
 test(1, valid(y > 1 /\ x = 3 /\ x + y < 19  ==>  x + 19 > y)).    % p. 102
 test(2, valid(y > 1 /\ x = 3 /\ not(x + y < 19) ==>  y + y > y)). % p. 102
@@ -1165,12 +1168,18 @@ test(9, valid(forall(x,exists(y, y > 2)))).
 test(10, valid(exists(y, x+y > 1))).
 test(11, valid(x>0 \/ x = 0)).
 test(12, \+ valid(x+y>1)).
+
 test(a1, valid(forall(x, exists(y, y = x)))).
 test(a2, satisfiable(exists(x, exists(y, x > 0 /\ y > x)))).
 test(a3, satisfiable(exists(x, x > 0 /\ exists(y, y > x)))).
 test(a4, \+ valid(exists(x, x > 3 /\ x < 3 \/ y = 5))).
 test(a5, \+ valid(forall(y, exists(x, x > 3 /\ x < 3 \/ y = 5)))).
 test(a6, \+ valid(x > 3 /\ x > 3 ==> x > 4)).
+test(a8, raises_exception(valid(exists(X, X = 3 \/ Y = 5) /\ exists(Y, Y = 3)))).
+test(a9, \+ valid(exists(x,y=2))).
+test(aA, valid((x=2\/(x=2==>x=2))/\ (x=2\/not(x=2)))).
+test(aB, valid(exists(x,exists(y,y=2)))).
+test(aC, raises_exception(valid(exists(x, exists(x, x < 0))))).
 
 test(13, N, \+ valid(exists(x, x > N /\ x < N))).
 test(14, N, valid(not(exists(x, x > N /\ x < N)))).
