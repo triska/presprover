@@ -157,6 +157,11 @@ states_nexts_([Q|Qs], DA) -->
         list(States),
         states_nexts_(Qs, DA).
 
+state_nexts(Q, DA, Nexts) :-
+        (   get_assoc(Q, DA, Nexts) -> true
+        ;   Nexts = []
+        ).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Convert a list of transitions to an association table where each
    state is a key, associated to a list of pairs Symbol-NextState.
@@ -480,11 +485,6 @@ symbol_step_([Q|Qs], DA, A) -->
           pairs_values(Nexts, States) },
         list(States),
         symbol_step_(Qs, DA, A).
-
-state_nexts(Q, DA, Nexts) :-
-        (   get_assoc(Q, DA, Nexts) -> true
-        ;   Nexts = []
-        ).
 
 first_is(X, X-_).
 
@@ -949,21 +949,11 @@ test_aut(2, aut([q(-1), q(0), q(1), q(2), q(4)], [q(0), q(1), q(2), q(4)], q(4),
 test_aut(3, aut([q(-5), q(-3), q(-2), q(-1), q(0)], [q(0)], q(-5), [delta(q(-5), [0], q(-3)), delta(q(-5), [1], q(-2)), delta(q(-3), [0], q(-2)), delta(q(-3), [1], q(-1)), delta(q(-2), [0], q(-1)), delta(q(-2), [1], q(-1)), delta(q(-1), [0], q(-1)), delta(q(-1), [1], q(0)), delta(q(0), [0], q(0)), delta(q(0), [1], q(0))])).
 
 
-eq_satisfiable(Cs, Sum) :-
-        eq_automaton(Cs, Sum, A),
-        \+ empty_automaton(A).
-
-
 test_eq(1, [1, 2, -3], 1).  % x + 2*y - 3z = 1
 test_eq(2, [1, 2],     3).
 test_eq(3, [2, 5],    20).
 
 test_ineq(1, [2,-1], -1).
-
-
-ineq_satisfiable(Cs, Sum) :-
-        ineq_automaton(Cs, Sum, Aut),
-        \+ empty_automaton(Aut).
 
 
 % syntax check
@@ -1105,16 +1095,14 @@ raises_exception(Goal) :-
         catch(Goal, _, Exc = true),
         Exc == true.
 
-test(t0, (list_to_assoc([7-true], A),
-          append_without([1,2,3], [7,8], A, [1,2,3,8]),
-          intersec_ishalting([q(0),q(1)],[q(0)], q(1)-q(0)),
-          test_table(1, T),
-          symbol_union(T,[q1,q2],1,u([q1,q2],1,[q1,q2])))).
+test(t0a, (list_to_assoc([7-true], A), append_without([1,2,3], [7,8], A, [1,2,3,8]))).
+test(t0b, intersec_ishalting([q(0),q(1)],[q(0)], q(1)-q(0))).
+test(t0c, (test_table(1, T), symbol_union(T,[q1,q2],1,u([q1,q2],1,[q1,q2])))).
 
-test(t1, (delta_alphabet([delta(a,1,b),delta(c,2,d),delta(f,2,g),delta(2,epsilon,5)],[1,2]),
-          delta_states([delta(a,1,b),delta(c,2,d),delta(f,2,g),delta(2,epsilon,5)],[2,5,a,b,c,d,f,g]),
-          phrase(complete_state([1,2],a,trap,[delta(a,1,b)]), Cs),
-          Cs = [delta(a, 2, trap)])).
+test(t1a, delta_alphabet([delta(a,1,b),delta(c,2,d),delta(f,2,g),delta(2,epsilon,5)],[1,2])).
+test(t1b, delta_states([delta(a,1,b),delta(c,2,d),delta(f,2,g),delta(2,epsilon,5)],[2,5,a,b,c,d,f,g])).
+test(t1c, phrase(complete_state([1,2],a,trap,[delta(a,1,b)]), [delta(a, 2, trap)])).
+
 test(t2, (test_ndfa(1, NDFA),
           ndfa_dfa(NDFA, aut([q(0),q(1),q(2),q(3),q(4)],[q(1),q(2),q(3),q(4)],q(1),[delta(q(1),0,q(2)),delta(q(1),1,q(3)),delta(q(1),2,q(4)),delta(q(2),0,q(2)),delta(q(2),1,q(3)),delta(q(2),2,q(4)),delta(q(3),0,q(0)),delta(q(3),1,q(3)),delta(q(3),2,q(4)),delta(q(4),0,q(0)),delta(q(4),1,q(0)),delta(q(4),2,q(4)),delta(q(0),0,q(0)),delta(q(0),1,q(0)),delta(q(0),2,q(0))])))).
 
@@ -1125,7 +1113,9 @@ test(t4, (test_aut(1, A1), test_aut(3, A3),
           aut_intersection(A1,A3,Int), empty_automaton(Int))).
 
 test(t5, forall(member(T, [1,2,3]),
-                (   test_eq(T, Cs, Sum), eq_satisfiable(Cs, Sum)))).
+                (   test_eq(T, Cs, Sum),
+                    eq_automaton(Cs, Sum, Aut),
+                    \+ empty_automaton(Aut)))).
 
 test(1, valid(y > 1 /\ x = 3 /\ x + y < 19  ==>  x + 19 > y)).    % p. 102
 test(2, valid(y > 1 /\ x = 3 /\ not(x + y < 19) ==>  y + y > y)). % p. 102
