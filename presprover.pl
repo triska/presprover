@@ -364,40 +364,46 @@ exists_choicepath(Delta) :-
         member(Seq-Q2, Nexts),
         Q1 \== Q2.
 
-state_table(Alphabet, DA, Q, Table) :-
+state_delta(Alphabet, DA, Q, Delta) :-
         maplist(state_reachables(Q,DA), Alphabet, Rss),
-        maplist(transform_table(Q), Alphabet, Rss, Table).
+        maplist(state_symbol_delta(Q), Alphabet, Rss, Delta).
 
-transform_table(Q, A, Rs, t(Q,A,Rs)).
+state_symbol_delta(Q, A, Rs, delta(Q,A,Rs)).
 
-ndfa_alphabet_table(aut(Qs,_QFs,_Q0,Delta), Alphabet, Table) :-
-        delta_alphabet(Delta, Alphabet),
-        delta_to_assoc(Delta, DA),
-        maplist(state_table(Alphabet,DA), Qs, Tables),
-        append(Tables, Table).
+ndfa_alphabet_delta(aut(Qs,_,_,Delta0), Alphabet, Delta) :-
+        delta_alphabet(Delta0, Alphabet),
+        delta_to_assoc(Delta0, DA),
+        maplist(state_delta(Alphabet,DA), Qs, Deltas),
+        append(Deltas, Delta).
 
-symbol_union(Table, Qs, A, u(Qs,A,Us)) :-
-        phrase(symbol_union_(Qs,Table,A), Us0),
+delta_alphabet(Delta, Symbols) :-
+        maplist(delta_symbol, Delta, Symbols0),
+        exclude(=(epsilon), Symbols0, Symbols1),
+        sort(Symbols1, Symbols).
+
+delta_symbol(delta(_,S,_), S).
+
+symbol_union(DA, Qs, A, delta(Qs,A,Us)) :-
+        phrase(symbol_union_(Qs,DA,A), Us0),
         sort(Us0, Us).
 
 symbol_union_([], _, _) --> [].
-symbol_union_([Q|Qs], Table, A) -->
-        { memberchk(t(Q,A,Rs), Table) },
+symbol_union_([Q|Qs], DA, A) -->
+        { state_nexts(Q, DA, Nexts),
+          memberchk(A-Rs, Nexts) },
         list(Rs),
-        symbol_union_(Qs, Table, A).
+        symbol_union_(Qs, DA, A).
 
-test_table(1, [t(q0, 0, [q0, q1, q2]), t(q0, 1, [q1, q2]), t(q0, 2, [q2]), t(q1, 0, []),t(q1, 1, [q1, q2]), t(q1, 2, [q2]), t(q2, 0, []), t(q2, 1, []), t(q2, 2, [q2])]).
+test_delta(1, [delta(q0,0,[q0,q1,q2]),delta(q0,1,[q1,q2]),delta(q0,2,[q2]),delta(q1,0,[]),delta(q1,1,[q1,q2]),delta(q1,2,[q2]),delta(q2,0,[]),delta(q2,1,[]),delta(q2,2,[q2])]).
 
 list([]) --> [].
 list([E|Es]) --> [E], list(Es).
 
 
 % final state in DFA: if one of its "sub"-states is final in NDFA
-is_dfafinal(Fs, d(Qs)) :-
+is_dfafinal(Fs, Qs) :-
         member(Q, Qs),
         memberchk(Q, Fs).
-
-dfa_transform_table(u(Qs,A,Rs), delta(d(Qs),A,d(Rs))).
 
 can_reach_final_from_start(Q0, QFs, Delta) :-
         delta_to_assoc(Delta, DA),
@@ -407,46 +413,51 @@ can_reach_final_from_start(Q0, QFs, Delta) :-
 
 ndfa_dfa(NDFA, DFA) :-
         (   is_deterministic(NDFA) -> DFA0 = NDFA
-        ;   NDFA = aut(_,QFs,Q0,Delta),
-            ndfa_alphabet_table(NDFA, Alphabet, Table),
-            maplist(symbol_union(Table,[Q0]), Alphabet, Us0),
+        ;   NDFA = aut(_,QFs,Q0,Delta0),
+            ndfa_alphabet_delta(NDFA, Alphabet, Delta),
+            delta_to_assoc(Delta, DA),
+            maplist(symbol_union(DA,[Q0]), Alphabet, Us0),
             empty_assoc(Lookup0),
             register_firsts(Us0, Lookup0, Lookup),
-            saturate_det_table(Alphabet, Table, Lookup, Us0, Us),
-            maplist(dfa_transform_table, Us, DFADelta),
+            saturate_det_table(Alphabet, DA, Lookup, Us0, DFADelta),
             delta_states(DFADelta, DFAStates0),
-            sort([d([Q0])|DFAStates0], DFAStates),
+            sort([[Q0]|DFAStates0], DFAStates),
             include(is_dfafinal(QFs), DFAStates, DFAFinals0),
-            (   can_reach_final_from_start(Q0, QFs, Delta) ->
-                DFAFinals1 = [d([Q0])|DFAFinals0]
+            (   can_reach_final_from_start(Q0, QFs, Delta0) ->
+                DFAFinals1 = [[Q0]|DFAFinals0]
             ;   DFAFinals1 = DFAFinals0
             ),
             sort(DFAFinals1, DFAFinals),
-            DFA0 = aut(DFAStates,DFAFinals,d([Q0]),DFADelta)
+            DFA0 = aut(DFAStates,DFAFinals,[Q0],DFADelta)
         ),
         aut_minimal(DFA0, DFA).
 
-u_first(u(Q,_,_), Q).
+delta_first(delta(Q,_,_), Q).
 
 register_firsts(Us, Lookup0, Lookup) :-
-        maplist(u_first, Us, Firsts),
+        maplist(delta_first, Us, Firsts),
         foldl(register_state, Firsts, Lookup0, Lookup).
 
 dettable_notcovered(Lookup, Us, Q) :-
-        member(u(_,_,Q), Us),
+        member(delta(_,_,Q), Us),
         \+ in_assoc(Lookup, Q).
 
-saturate_det_table(Alphabet, Table, Lookup0, Us0, Us) :-
+saturate_det_table(Alphabet, DA, Lookup0, Us0, Us) :-
         (   dettable_notcovered(Lookup0, Us0, Qs) ->
-            maplist(symbol_union(Table,Qs), Alphabet, Us1),
+            maplist(symbol_union(DA,Qs), Alphabet, Us1),
             register_firsts(Us1, Lookup0, Lookup),
             append(Us0, Us1, Us2),
-            saturate_det_table(Alphabet, Table, Lookup, Us2, Us)
+            saturate_det_table(Alphabet, DA, Lookup, Us2, Us)
         ;   Us0 = Us
         ).
 
 
+delta_states(Delta, Qs) :-
+        phrase(delta_states_(Delta), Qs0),
+        sort(Qs0, Qs).
 
+delta_states_([]) --> [].
+delta_states_([delta(Q,_,R)|Ds]) --> [Q,R], delta_states_(Ds).
 
 test_ndfa(1, aut([q0,q1,q2],[q2],q0,[delta(q0,0,q0),delta(q0,epsilon,q1),delta(q1,1,q1),delta(q1,epsilon,q2),delta(q2,2,q2)])).
 
@@ -487,16 +498,6 @@ symbol_step_([Q|Qs], DA, A) -->
         symbol_step_(Qs, DA, A).
 
 first_is(X, X-_).
-
-
-delta_alphabet(Delta, As) :-
-        findall(A, (member(delta(_,A,_),Delta), A \= epsilon), As1),
-        sort(As1, As).
-
-delta_states(Delta, Qs) :-
-        findall(Q, member(delta(Q,_,_),Delta), Qs1),
-        findall(R, member(delta(_,_,R),Delta), Qs2),
-        append_sort(Qs1, Qs2, Qs).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1097,7 +1098,7 @@ raises_exception(Goal) :-
 
 test(t0a, (list_to_assoc([7-true], A), append_without([1,2,3], [7,8], A, [1,2,3,8]))).
 test(t0b, intersec_ishalting([q(0),q(1)],[q(0)], q(1)-q(0))).
-test(t0c, (test_table(1, T), symbol_union(T,[q1,q2],1,u([q1,q2],1,[q1,q2])))).
+test(t0c, (test_delta(1, D), delta_to_assoc(D, DA), symbol_union(DA,[q1,q2],1,delta([q1,q2],1,[q1,q2])))).
 
 test(t1a, delta_alphabet([delta(a,1,b),delta(c,2,d),delta(f,2,g),delta(2,epsilon,5)],[1,2])).
 test(t1b, delta_states([delta(a,1,b),delta(c,2,d),delta(f,2,g),delta(2,epsilon,5)],[2,5,a,b,c,d,f,g])).
