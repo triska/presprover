@@ -525,17 +525,18 @@ aut_complement(Aut, Complement) :-
             Complement = aut(Qs,CFinals,Q0,CompleteDelta)
         ).
 
-complete_states([], _Alphabet, _Trap, _Delta) --> [].
-complete_states([Q|Qs], Alphabet, Trap, Delta) -->
-        complete_state(Alphabet, Q, Trap, Delta),
-        complete_states(Qs, Alphabet, Trap, Delta).
+complete_states([], _, _, _) --> [].
+complete_states([Q|Qs], Alphabet, Trap, DA) -->
+        { state_nexts(Q, DA, Nexts) },
+        complete_state(Alphabet, Q, Trap, Nexts),
+        complete_states(Qs, Alphabet, Trap, DA).
 
-complete_state([], _Q, _Trap, _Delta) --> [].
-complete_state([A|As], Q, Trap, Delta) -->
-        (   { member(delta(Q,A,_), Delta) } -> []
+complete_state([], _, _, _) --> [].
+complete_state([A|As], Q, Trap, Nexts) -->
+        (   { memberchk(A-_, Nexts) } -> []
         ;   [delta(Q,A,Trap)]
         ),
-        complete_state(As, Q, Trap, Delta).
+        complete_state(As, Q, Trap, Nexts).
 
 trapdelta(Trap, A, delta(Trap,A,Trap)).
 
@@ -543,7 +544,8 @@ trapdelta(Trap, A, delta(Trap,A,Trap)).
 aut_complete(Alphabet, aut(Qs0,QFs,Q0,Delta0), aut(Qs,QFs,Q0,Delta)) :-
         length(Qs0, LQs),
         Trap = trap(LQs),
-        phrase(complete_states(Qs0,Alphabet,Trap,Delta0), Delta1, Delta0),
+        delta_to_assoc(Delta0, DA),
+        phrase(complete_states(Qs0,Alphabet,Trap,DA), Delta1, Delta0),
         sort(Delta1, Delta2), % remove duplicates
         maplist(trapdelta(Trap), Alphabet, TrapDeltas),
         append_sort(Delta2, TrapDeltas, Delta),
@@ -1102,7 +1104,7 @@ test(t0c, (test_delta(1, D), delta_to_assoc(D, DA), symbol_union(DA,[q1,q2],1,de
 
 test(t1a, delta_alphabet([delta(a,1,b),delta(c,2,d),delta(f,2,g),delta(2,epsilon,5)],[1,2])).
 test(t1b, delta_states([delta(a,1,b),delta(c,2,d),delta(f,2,g),delta(2,epsilon,5)],[2,5,a,b,c,d,f,g])).
-test(t1c, phrase(complete_state([1,2],a,trap,[delta(a,1,b)]), [delta(a, 2, trap)])).
+test(t1c, (delta_to_assoc([delta(a,1,b)], DA), phrase(complete_states([a], [1,2],trap,DA), [delta(a,2,trap)]))).
 
 test(t2, (test_ndfa(1, NDFA),
           ndfa_dfa(NDFA, aut([q(0),q(1),q(2),q(3),q(4)],[q(1),q(2),q(3),q(4)],q(1),[delta(q(1),0,q(2)),delta(q(1),1,q(3)),delta(q(1),2,q(4)),delta(q(2),0,q(2)),delta(q(2),1,q(3)),delta(q(2),2,q(4)),delta(q(3),0,q(0)),delta(q(3),1,q(3)),delta(q(3),2,q(4)),delta(q(4),0,q(0)),delta(q(4),1,q(0)),delta(q(4),2,q(4)),delta(q(0),0,q(0)),delta(q(0),1,q(0)),delta(q(0),2,q(0))])))).
