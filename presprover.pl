@@ -109,8 +109,8 @@
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- module(presprover, [
-                       op(750, xfy, /\),
-                       op(751, xfy, \/),
+                       op(750, yfx, /\),
+                       op(751, yfx, \/),
                        op(760, xfy, ==>),
                        valid/1,
                        satisfiable/1,
