@@ -704,9 +704,7 @@ rename_state(State, N0-Syn0, N-Syn) :-
         put_assoc(State, Syn0, q(N0), Syn),
         N #= N0 + 1.
 
-delta_reachable(Syn, delta(P,_,Q)) :-
-        in_assoc(Syn, P),
-        in_assoc(Syn, Q).
+delta_reachable(Syn, delta(P,_,_)) :- in_assoc(Syn, P).
 
 delta_synonym(Syn, delta(P0,S,Q0), delta(P,S,Q)) :-
         state_synonym(Syn, P0, P),
