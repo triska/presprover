@@ -66,7 +66,7 @@
       false.
 
       ?- satisfiable(x > 0).
-      true .
+      true.
 
       ?- valid(x >= 0).
       true.
