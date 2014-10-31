@@ -605,7 +605,8 @@ aut_minimal(Aut0, Aut) :-
         include(second_is(true), Sames0, Sames1),
         pairs_keys(Sames1, Sames),
         group_pairs_by_key(Sames, Groups),
-        maplist(delta_to_representative(Groups), Delta0, Delta),
+        maplist(delta_to_representative(Groups), Delta0, Delta1),
+        sort(Delta1, Delta), % remove duplicates
         synonym_or_same(Groups, Q00, Q0),
         states_representatives(Groups, QFs0, QFs),
         states_representatives(Groups, Qs0, Qs),
