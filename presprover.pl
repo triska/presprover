@@ -782,36 +782,35 @@ pvar(V) :- atom(V).
 % separate an expression into a polynomial, represented as a list of
 % pairs V-Coeff, and a constant C.
 
-expr_linsum_const(V, [V-1], 0) :- pvar(V), !.
-expr_linsum_const(C, [], C)    :- integer(C), !.
-expr_linsum_const(-A, Ls, C)   :-
+expr_linsum_const(Expr, Ls, C) :-
+        (   expr_linsum_const_(Expr, Ls, C) -> true
+        ;   throw('illegal arithmetic expression'-Expr)
+        ).
+
+expr_linsum_const_(V, [V-1], 0) :- pvar(V).
+expr_linsum_const_(C, [], C)    :- integer(C).
+expr_linsum_const_(-A, Ls, C)   :-
         expr_linsum_const(A, ALs, AC),
-        !,
         maplist(coeff_negative, ALs, Ls),
         C #= -AC.
-expr_linsum_const(A+B, Ls, C)  :-
+expr_linsum_const_(A+B, Ls, C)  :-
         expr_linsum_const(A, ALs, AC),
         expr_linsum_const(B, BLs, BC),
-        !,
         append(ALs, BLs, Ls0),
         sumup(Ls0, Ls),
         C #= AC + BC.
-expr_linsum_const(A*B, Ls, C) :-
+expr_linsum_const_(A*B, Ls, C) :-
         expr_linsum_const(A, ALs, AC),
         expr_linsum_const(B, BLs, BC),
         product(ALs, AC, BLs, BC, Ls0, C),
-        !,
         sumup(Ls0, Ls).
-expr_linsum_const(A-B, Ls, C) :-
+expr_linsum_const_(A-B, Ls, C) :-
         expr_linsum_const(A, ALs, AC),
         expr_linsum_const(B, BLs, BC),
-        !,
         maplist(coeff_negative, BLs, BLs1),
         append(ALs, BLs1, Ls0),
         sumup(Ls0, Ls),
         C #= AC - BC.
-expr_linsum_const(Expr, _, _) :- !,
-        throw('illegal arithmetic expression'-Expr).
 
 product([], AC, BLs, BC, Ls, C) :-
         maplist(coeff_times(AC), BLs, Ls),
