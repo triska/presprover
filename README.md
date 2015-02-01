@@ -1,5 +1,5 @@
 
-Reason about formulas of Presburger arithmetic over natural numbers.
+Presprover reasons about formulas of Presburger arithmetic over natural numbers.
 
 Some example queries and their results:
 
