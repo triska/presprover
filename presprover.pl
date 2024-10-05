@@ -1,6 +1,6 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   Presprover -- Prove formulas of Presburger arithmetic
-  Copyright (C) 2005, 2014, 2020 Markus Triska triska@metalevel.at
+  Copyright (C) 2005-2023 Markus Triska (triska@metalevel.at)
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -64,49 +64,49 @@
    Some example queries and their results:
 
       ?- valid(x > 0).
-      false.
+      %@ false.
 
       ?- satisfiable(x > 0).
-      true.
+      %@    true.
 
       ?- valid(x >= 0).
-      true.
+      %@    true.
 
       ?- valid(exists(x, x > 0)).
-      true.
+      %@    true.
 
       ?- valid(forall(x, exists(y, 3*x + y > 2))).
-      true.
+      %@    true.
 
       ?- valid(2*y + 3*x = 30 /\ x = 0 ==> y = 15).
-      true.
+      %@    true.
 
       ?- valid(x = 3 \/ not(x=3)).
-      true.
+      %@    true.
 
       ?- valid(x = 5 ==> 2*x = 10).
-      true.
+      %@    true.
 
       ?- valid(y > 1 /\ x = 3 /\ x + y < 19 ==> x + 19 > y).
-      true.
+      %@    true.
 
    You can use solution/1 to print solutions of satisfiable formulas:
 
       ?- solution(x > 100_000 /\ y = 20).
-      x=114688.
-      y=20.
-      true .
+      %@ x=114688.
+      %@ y=20.
+      %@    true
+      %@ ;  ...
 
-   For logical variables, solutions are reported as variable bindings:
+   For logic variables, solutions are reported as variable bindings:
 
       ?- solution(X > 1_000_000_000 /\ Y > 10*X).
-      X = 1536870912,
-      Y = 16106127360 ;
-      X = 1536870912,
-      Y = 16106128384 ;
-      X = 1536870912,
-      Y = 16106127872 ;
-      etc.
+      %@    X = 1536870912, Y = 16106127360
+      %@ ;  X = 1536870912, Y = 16106128384
+      %@ ;  X = 1536870912, Y = 16106127872
+      %@ ;  X = 1536870912, Y = 16106127616
+      %@ ;  X = 1536870912, Y = 16106127488
+      %@ ;  ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- module(presprover, [
@@ -209,7 +209,7 @@ eq_automaton(Coeffs, Sum, Aut) :-
 
 saturate_eq([], _, AQ, AQ, D, D).
 saturate_eq([q(C)|QIterRest], Coeffs, AQ0, AQ, Delta0, Delta) :-
-        eq_mod2(Coeffs, C, Tuples),
+        findall(Vs, eq_mod2(Coeffs, C, Vs), Tuples),
         maplist(eq_tuple_newstate(Coeffs,C), Tuples, NewStates),
         maplist(state_tuple_delta(q(C)), NewStates, Tuples, NewDeltas),
         append(Delta0, NewDeltas, Delta1),
@@ -223,13 +223,14 @@ register_state(State, AQ0, AQ) :- put_assoc(State, AQ0, true, AQ).
 
 factor_mod2(C0, C) :- C #= abs(C0 mod 2).
 
-eq_mod2(Coeffs0, C0, Tuples) :-
+eq_mod2(Coeffs0, C0, Vs) :-
         C #= abs(C0 mod 2),
         maplist(factor_mod2, Coeffs0, Coeffs),
         same_length(Coeffs, Vs),
         Vs ins 0..1,
         scalar_product(Coeffs, Vs, #=, S),
-        findall(Vs, (S mod 2 #= C, label(Vs)), Tuples).
+        S mod 2 #= C,
+        label(Vs).
 
 
 eq_tuple_newstate(Coeffs, C, Tuple, q(D)) :-
@@ -249,8 +250,7 @@ in_assoc(Assoc, X) :- get_assoc(X, Assoc, _).
 ineq_automaton(Coeffs, Sum, A) :-
         Q0 = q(Sum),
         same_length(Coeffs, Thetas),
-        Thetas ins 0..1,
-        findall(Thetas, label(Thetas), Tuples),
+        findall(Thetas, (Thetas ins 0..1,label(Thetas)), Tuples),
         list_to_assoc([Q0-true], AQ0),
         saturate_ineq([Q0], Coeffs, Tuples, AQ0, AQ, [], Delta0),
         assoc_to_list(AQ, PQs),
@@ -523,8 +523,7 @@ aut_complement(Aut, Complement) :-
             )
         ;   Delta = [delta(_,Seq,_)|_],
             same_length(Seq, Bits),
-            Bits ins 0..1,
-            findall(Bits, label(Bits), Binaries),
+            findall(Bits, (Bits ins 0..1,label(Bits)), Binaries),
             aut_complete(Binaries, DFA, aut(Qs,QFs,Q0,CompleteDelta)),
             list_delete(QFs, Qs, CFinals0),
             exclude(pseudo_final_state(QFs,CompleteDelta), CFinals0, CFinals1),
@@ -857,7 +856,7 @@ nf_quantified(_ =< _)       --> [].
    We establish the definitive order of variables occurring in the
    formula, and thus of the tracks in the automaton, by using
    list_to_set/2 on the list of all variables. This is more reliable
-   than sort/2, since the relative (term-)order of logical variables
+   than sort/2, since the relative (term-)order of logic variables
    may change (for example, due to garbage collection or stack
    shifting) during program execution in future Scryer versions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
